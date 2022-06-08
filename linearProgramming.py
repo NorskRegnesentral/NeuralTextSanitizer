@@ -5,7 +5,7 @@ import numpy as np
 from ortools.sat.python import cp_model
 
 class linearOpt:
-    def __init__(self, n, m, constraints, scores, target="min"):
+    def __init__(self, n, m, constraints, scores):
         """
         :param n: How many entities
         :param m: How many options do we have, e.g [MASK Original, KEEP Original, Change1] -> m = 3
@@ -35,10 +35,7 @@ class linearOpt:
         for pair in constraints:
             self.model.Add(sum(self.choices[choice] for choice in pair) <= len(pair) - 1)
 
-        if target == "min":
-            self.model.Maximize(- sum(scores[i, j] * self.choices[i, j] for i in range(n) for j in range(m)))
-        else:
-            self.model.Maximize(sum(scores[i, j] * self.choices[i, j] for i in range(n) for j in range(m)))
+        self.model.Minimize(sum(scores[i, j] * self.choices[i, j] for i in range(n) for j in range(m)))
 
     def solve(self):
         """
@@ -58,7 +55,7 @@ class linearOpt:
             res = []
             for choice, var in self.choices.items():
                 if solver.Value(var) == 1:
-                    print(f'Entity {choice[0]} choose option {choice[1]}')
+                    # print(f'Entity {choice[0]} choose option {choice[1]}')
                     res.append(choice[1])
             return res
         else:
@@ -81,6 +78,6 @@ if __name__ == "__main__":
         [7, 5],
     ])
 
-    tmp = linearOpt(n, m, constraints, scores, target="min")
+    tmp = linearOpt(n, m, constraints, scores)
     res = tmp.solve()
     print(res)
