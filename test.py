@@ -16,42 +16,70 @@ from emulate import simGoogle
 from transformers import BertTokenizerFast, BertForMaskedLM
 from mlmbert import mlmbert
 
+from detect import detect_pii
+
 if __name__ == "__main__":
-    with open("SampleData/sample.json","r") as f:
+    # Test Data for Step2 + Step3
+    # with open("SampleData/sample.json","r") as f:
+    #     tmp = json.load(f)
+    # sequence = tmp["sequence"]
+    # target = tmp["target"]
+    # posList = tmp["posList"]
+    # posList = [tuple(p) for p in posList] # Ensure posList List of tuple -> otherwise unhashable
+    # sequence = "Bodewin Claus Eduard Keitel (German pronunciation: [ˈkaɪ̯tl̩]; 1888 – 1953) was a German general during World War II who served as head of the Army Personnel Office."
+    # target = "bodewin keitel"
+    # posList = [(0, 27), (29, 35), (51, 61), (63, 67), (70, 74), (82, 88), (89, 96), (104, 116), (131, 135), (143, 164)]  # annotation text_span
+
+    # Test Data for the whole pipeline
+    with open("SampleData/sample2.json","r") as f:
         tmp = json.load(f)
-    sequence = tmp["sequence"]
+
+    sequence = tmp["text"]
     target = tmp["target"]
-    posList = tmp["posList"]
-    posList = [tuple(p) for p in posList] # Ensure posList List of tuple -> otherwise unhashable
+    try:
+        # If posList have annotations
+        posList = tmp["annotations"]
+        posList = [tuple(p) for p in posList] # Ensure posList List of tuple -> otherwise unhashable
+    except KeyError:
+        # Privacy enhanced NER to detect all PII
+        posList = detect_pii(tmp) # List of {target: [Spans detected with labels]}
+        posList = list(posList.values())[0] # get only the values
+
+        tagList = [i[1] for i in posList]
+        posList = [i[0] for i in posList] # text spans
+
+        # posList = sorted(posList, key=lambda x: x[0])
+        posList = list(set(posList))
+        posList = sorted(posList, key=lambda x: x[0])
 
     # Step 1: get blacklist
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    start = time.time()
+    print("Getting blacklist1 [Language Model]")
+    tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
+    model = BertForMaskedLM.from_pretrained('bert-base-uncased')
+    mlmbert_model = mlmbert(device, tokenizer, model, thres = -4, N=1)
+    blacklist1, semantic_loss = mlmbert_model.get_blacklist_and_semantic_loss(sequence, posList)
+    blacklist1 = [[(t,1) for t in pair] for pair in blacklist1]
+    print(blacklist1)
+    print(time.time() - start, "s")
 
     start = time.time()
     print("Loading Model")
     bertModel = BertModel.from_pretrained("bert-large-cased")
     tokenizer = BertTokenizer.from_pretrained("bert-large-cased")
     myModel = MyModel5(device, drop=True, pooling="max").to(device)
-    myModel.load_state_dict(torch.load('SampleData/model5max.pt',map_location=device))
-    print(time.time()-start,"s")
+    myModel.load_state_dict(torch.load('SampleData/model5max.pt', map_location=device))
+    print(time.time() - start, "s")
 
     start = time.time()
-    print("Getting blacklist1")
+    print("Getting blacklist2 [Web Query Based Models]")
     sim = simGoogle(tokenizer, bertModel, myModel, device)
-    sim.initialize(sequence,posList,target)
+    sim.initialize(sequence, posList, target)
     res = sim.generateBlackList(2)
-    blacklist1 = [[(t,1) for t in pair] for pair in res] # entity t can not choose option 1 [KEEP]
+    blacklist2 = [[(t, 1) for t in pair] for pair in res]  # entity t can not choose option 1 [KEEP]
     sim.clear()
-    print(blacklist1)
-    print(time.time()-start,"s")
-
-    start = time.time()
-    print("Getting blacklist2 [Using BertForMaskedLM]")
-    tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased')
-    model = BertForMaskedLM.from_pretrained('bert-base-uncased')
-    mlmbert_model = mlmbert(device, tokenizer, model, thres = -20, N=3)
-    blacklist2, semantic_loss = mlmbert_model.get_blacklist_and_semantic_loss(sequence, posList)
-    blacklist2 = [[(t,1) for t in pair] for pair in blacklist2]
     print(blacklist2)
     print(time.time() - start, "s")
     blacklist = blacklist1 + blacklist2
@@ -59,19 +87,44 @@ if __name__ == "__main__":
     # Step 2: get final decision for each entity
     start = time.time()
     print("Getting final decisions")
-    n = len(semantic_loss) # 21
+    n = len(semantic_loss)
     m = 2
-    # scores = np.random.randn(n,m) # Use Random Value as place holders
     scores = np.array([[sem_loss,0] for sem_loss in semantic_loss]) # should input np.array
     optSolver = linearOpt(n, m, blacklist, scores)
     res = optSolver.solve()
     print(res)
     print(time.time()-start,"s")
 
+    # Save final decisions
+    decisions = {
+        "opt_decision": [posList[i] for i,d in enumerate(res) if d==1],        # 1 for KEEP
+        "ner_decision": posList,                                               # All the entities detected by NER
+        "b1": list(set(posList[t[0]] for pair in blacklist1 for t in pair)),   # blacklist1 LM
+        "b2": list(set(posList[t[0]] for pair in blacklist2 for t in pair)),   # blacklist2 Web Query Based Models
+    }
+    # sort the list
+    for v in decisions.values():
+        v.sort()
+    final_decisions = {target:decisions}
+
+    import json
+    json.dump(final_decisions, open("final_decision.json","w"))
+
+    # Some tests
+
+    # Print Blacklist
+    # print("Blacklist1")
+    # for pair in blacklist1:
+    #     print(" AND ".join(sequence[posList[p[0]][0]:posList[p[0]][1]] for p in pair))
+    # print("Blacklist2")
+    # for pair in blacklist2:
+    #     print(" AND ".join(sequence[posList[p[0]][0]:posList[p[0]][1]] for p in pair))
+
     # Print Masking Decisions
-    entities = [tmp["sequence"][pos[0]:pos[1]] for pos in posList]
-    for entity, decision, sem_loss in zip(entities, res, semantic_loss):
-        if decision == 1:
-            print(entity, '\t', 'Keep', '\t', 0)
-        else:
-            print(entity, '\t', 'Mask', '\t', sem_loss)
+    # entities = [sequence[pos[0]:pos[1]] for pos in posList]
+    # print("Final Decision")
+    # for entity, decision, sem_loss in zip(entities, res, semantic_loss):
+    #     if decision == 1:
+    #         print(entity, '\t', 'Keep', '\t', 0)
+    #     else:
+    #         print(entity, '\t', 'Mask', '\t', sem_loss)
