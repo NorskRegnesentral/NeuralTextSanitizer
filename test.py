@@ -16,6 +16,8 @@ from emulate import simGoogle
 from transformers import BertTokenizerFast, BertForMaskedLM
 from mlmbert import mlmbert
 
+from bert_model import NERModel
+from transformers import RobertaTokenizerFast
 from detect import detect_pii
 
 if __name__ == "__main__":
@@ -36,13 +38,20 @@ if __name__ == "__main__":
 
     sequence = tmp["text"]
     target = tmp["target"]
+
+    # Step 0: detect entities
+    bert = "roberta-base"
+    tokenizer = RobertaTokenizerFast.from_pretrained(bert)
+    model = NERModel(model=bert, num_labels=17)
+    model.load_state_dict(torch.load("SampleData/3roberta_model.pt", map_location=torch.device('cpu')))
+
     try:
         # If posList have annotations
         posList = tmp["annotations"]
         posList = [tuple(p) for p in posList] # Ensure posList List of tuple -> otherwise unhashable
     except KeyError:
         # Privacy enhanced NER to detect all PII
-        posList = detect_pii(tmp) # List of {target: [Spans detected with labels]}
+        posList = detect_pii(tmp, model, tokenizer) # List of {target: [Spans detected with labels]}
         posList = list(posList.values())[0] # get only the values
 
         tagList = [i[1] for i in posList]

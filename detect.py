@@ -21,16 +21,12 @@
 # import random
 # import argparse
 from data_handling import *
-from bert_model import NERModel
-from transformers import RobertaTokenizerFast
 from torch.utils.data.dataloader import DataLoader
 import string
 
-bert = "roberta-base"
 
-def detect_pii(data):
+def detect_pii(data, model, tokenizer):
     # data.keys() = 'text', 'target'
-    tokenizer = RobertaTokenizerFast.from_pretrained(bert)
 
     # label_set.labels_to_id, ids_to_label (17 categories, BI)
     label_set = LabelSet(labels=['MISC', 'QUANTITY', 'CODE', 'ORG', 'PERSON', 'DEM', 'DATETIME', 'LOC'])
@@ -39,8 +35,6 @@ def detect_pii(data):
     data_ = Dataset(data=data, tokenizer=tokenizer, label_set=label_set, tokens_per_batch=512)
     dataloader = DataLoader(data_, collate_fn=TrainingBatch, batch_size=8, shuffle=True)
 
-    model = NERModel(model = bert, num_labels = 17)
-    model.load_state_dict(torch.load("SampleData/3roberta_model.pt", map_location=torch.device('cpu')))
     model.eval()
 
     nums = {0: 0, 1: 1, 2: 2, 3: 1, 4: 2, 5: 1, 6: 2, 7: 1, 8: 2, 9: 1, 10: 2, 11: 1, 12: 2, 13: 1, 14: 2, 15: 1, 16: 2} 
@@ -100,16 +94,20 @@ def detect_pii(data):
         offsets = (i[1],i[2])
         if offsets[0] == offsets[1]: # No such entity in original text
             out.remove(i)
+            break
         elif offsets[0]>offsets[1]:  # No such entity in original text
             out.remove(i)
+            break
 
         if offsets[0]!= 0:
             if text[offsets[0]-1] in beta: # if the left side of the entity also has english character -> remove such entity
                 out.remove(i)
+                break
         if offsets[1] != len(text):
             if text[offsets[1]-1] not in punct:
                 if text[offsets[1]] in beta: # if the right side of the entity also has english character -> remove such entity
                     out.remove(i)
+                    break
 
     d = {}
     for i in out: # save the updated out { person's name: [(start,end), TAG] }
