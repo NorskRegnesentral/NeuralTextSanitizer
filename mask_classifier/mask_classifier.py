@@ -7,7 +7,7 @@ import transformers
 import torch
 import torch.nn as nn 
 import dill 
-import datasets
+# import datasets
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -43,8 +43,8 @@ class MaskClassifier(nn.Module):
                                                   num_training_steps=num_epochs * len(train_data))
 
         if dev_data is not None:
-            accuracy = datasets.load_metric("accuracy")
-            f1 = datasets.load_metric("f1")
+            # accuracy = datasets.load_metric("accuracy")
+            # f1 = datasets.load_metric("f1")
             dev_loader = torch.utils.data.DataLoader(dev_data, batch_size=batch_size,
                                                      num_workers=4, shuffle=False)
 
@@ -86,14 +86,14 @@ class MaskClassifier(nn.Module):
                         probs = self(**inputs)
                         predictions = (probs > 0.5)
                         labels = labels.to(device)
-                        accuracy.add_batch(predictions=predictions, references=labels)
-                        f1.add_batch(predictions=predictions, references=labels)
+                        # accuracy.add_batch(predictions=predictions, references=labels)
+                        # f1.add_batch(predictions=predictions, references=labels)
                         
                     progress_bar_eval.update(batch_size)
                 progress_bar_eval.close()
                     
-            print("Accuracy on dev set:", accuracy.compute())
-            print("F1 score on dev set:", f1.compute())
+            # print("Accuracy on dev set:", accuracy.compute())
+            # print("F1 score on dev set:", f1.compute())
             
             
     def predict(self, data, batch_size=10, device="cuda"):
@@ -102,6 +102,7 @@ class MaskClassifier(nn.Module):
             data.padding = False
         loader = torch.utils.data.DataLoader(data, batch_size=batch_size, num_workers=4, 
                                              shuffle=False) 
+        print(device)
         self = self.to(device)
         self.eval()
         
@@ -119,15 +120,15 @@ class MaskClassifier(nn.Module):
         return results
     
     
-    def predict_from_labelled_text(self, text:str, spans:Dict[Tuple[int,int],str], tokenizer="roberta-base"):
+    def predict_from_labelled_text(self, text:str, spans:Dict[Tuple[int,int],str], tokenizer="roberta-base", device="cuda"):
         
         if not hasattr(self, "tokenizer"):
-            self.tokenizer = transformers.AutoTokenizer.from_pretrained(tokenizer)
+            self.tokenizer = transformers.AutoTokenizer.from_pretrained("roberta-base") # tokenizer
             
         data = MaskingDataset(self.tokenizer)
         data.add_annotated_text(text, spans)
         
-        results = self.predict(data)
+        results = self.predict(data, device=device)
         results_by_span = {}
         for entity in data.entities:
             for start,end in entity["mentions"]:
@@ -141,8 +142,8 @@ class MaskClassifier(nn.Module):
         torch.save(self, filename, pickle_module=dill)
         
     @classmethod
-    def load(cls, filename):
-        model = torch.load(filename, pickle_module=dill)
+    def load(cls, filename, device="cuda"):
+        model = torch.load(filename, pickle_module=dill, map_location=device)
         model.eval()
         return model
     
@@ -443,13 +444,15 @@ def train_script():
 
     
 if __name__ == "__main__":
-    if not os.path.exists(MODEL_FILE):
-        print("Downloading fine-tuned model...")
-        wget.download("https://home.nr.no/~plison/data/" + MODEL_FILE)
-        
+    # if not os.path.exists(MODEL_FILE):
+    #     print("Downloading fine-tuned model...")
+    #     wget.download("https://home.nr.no/~plison/data/" + MODEL_FILE)
+
     text = "This is Pierre Lison, living in Oslo. More precisely at Kalbakken, on the east side of Oslo, in Norway."
     spans = {(8,20):"PERSON", (32,36):"LOC", (56,65):"LOC", (87,91):"LOC", (96,102):"LOC"}
-    
-    classifier = MaskClassifier.load("mask_classifier.dill")
-    results = classifier.predict_from_labelled_text(text, spans)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    classifier = MaskClassifier.load("mask_classifier.dill",device)
+    results = classifier.predict_from_labelled_text(text, spans, device = device)
     print(results)
