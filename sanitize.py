@@ -9,21 +9,21 @@ import time
 import json
 import numpy as np
 
-from linearProgramming import linearOpt # Should include this first, otherwise will raise Segmentation Fault
+from OptimizationAlgorithm.linearProgramming import linearOpt # Should include this first, otherwise will raise Segmentation Fault
 from transformers import BertTokenizer, BertModel
 # from models import MyModel5
 # from emulate import simGoogle
-from wq_model import MyModel5
-from wq_emulate import simGoogle
+from WebQueryModel.wq_model import MyModel5
+from WebQueryModel.wq_emulate import simGoogle
 
 from transformers import BertTokenizerFast, BertForMaskedLM
-from mlmbert import mlmbert
+from MLMModel.mlmbert import mlmbert
 
-from bert_model import NERModel
+from ERModel.bert_model import NERModel
 from transformers import RobertaTokenizerFast
-from detect import detect_pii
+from ERModel.detect import detect_pii
 
-from mask_classifier import MaskClassifier
+from MaskClassifier.mask_classifier import MaskClassifier
 
 
 if __name__ == "__main__":
@@ -74,21 +74,21 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     start = time.time()
-    print("Loading Model for blacklist1")
+    print("Loading Model for Blacklist 1")
     tokenizer = BertTokenizerFast.from_pretrained('bert-large-cased')
     bertModelForMLM = BertForMaskedLM.from_pretrained('bert-large-cased')
     mlmbert_model = mlmbert(device, tokenizer, bertModelForMLM, thres = -4, N=1)
     print(time.time() - start, "s")
 
     start = time.time()
-    print("Getting blacklist1 [Language Model]")
+    print("Getting Blacklist 1 [Language Model]\n")
     blacklist1, semantic_loss = mlmbert_model.get_blacklist_and_semantic_loss(sequence, posList)
     blacklist1 = [[(t,1) for t in pair] for pair in blacklist1]
-    print(blacklist1)
+    # print(blacklist1)
     print(time.time() - start, "s")
 
     start = time.time()
-    print("Loading Model for blacklist2")
+    print("Loading Model for Blacklist 2")
     bertModel = nn.Sequential(bertModelForMLM.bert.embeddings, bertModelForMLM.bert.encoder)
     # bertModel = BertModel.from_pretrained("bert-large-cased")
     # tokenizer = BertTokenizer.from_pretrained("bert-large-cased")
@@ -100,25 +100,25 @@ if __name__ == "__main__":
     print(time.time() - start, "s")
 
     start = time.time()
-    print("Getting blacklist2 [Web Query Based Models]")
+    print("Getting Blacklist 2 [Web Query Based Models]")
     sim = simGoogle(tokenizer, bertModel, myModel, device)
     sim.initialize(sequence, posList, target)
     res = sim.generateBlackList(2)
     blacklist2 = [[(t, 1) for t in pair] for pair in res]  # entity t can not choose option 1 [KEEP]
     sim.clear()
-    print(blacklist2)
+    # print(blacklist2)
     print(time.time() - start, "s")
 
     start = time.time()
-    print("Loading Model for blacklist3")
+    print("Loading Model for Blacklist 3")
     classifier = MaskClassifier.load("SampleData/mask_classifier.dill", device)
     print(time.time() - start, "s")
 
     start = time.time()
-    print("Getting blacklist3 [mask classifier]")
+    print("Getting Blacklist 3 [Mask Classifier]")
     res = classifier.predict_from_labelled_text(sequence, spans, device=device)
     blacklist3 = [[(i,1)] for i,pos in enumerate(posList) if res[pos]>0.5]
-    print(blacklist3)
+    # print(blacklist3)
     print(time.time() - start, "s")
 
     blacklist = blacklist1 + blacklist2 + blacklist3
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     scores = np.array([[sem_loss,0] for sem_loss in semantic_loss]) # should input np.array
     optSolver = linearOpt(n, m, blacklist, scores)
     res = optSolver.solve()
-    print(res)
+    # print(res)
     print(time.time()-start,"s")
 
     # Save final decisions
@@ -162,10 +162,10 @@ if __name__ == "__main__":
     #     print(" AND ".join(sequence[posList[p[0]][0]:posList[p[0]][1]] for p in pair))
 
     # Print Masking Decisions
-    entities = [sequence[pos[0]:pos[1]] for pos in posList]
-    print("Final Decision")
-    for entity, decision, sem_loss in zip(entities, res, semantic_loss):
-        if decision == 1:
-            print(entity, '\t', 'Keep', '\t', 0)
-        else:
-            print(entity, '\t', 'Mask', '\t', sem_loss)
+    # entities = [sequence[pos[0]:pos[1]] for pos in posList]
+    # print("Final Decision")
+    # for entity, decision, sem_loss in zip(entities, res, semantic_loss):
+    #     if decision == 1:
+    #         print(entity, '\t', 'Keep', '\t', 0)
+    #     else:
+    #         print(entity, '\t', 'Mask', '\t', sem_loss)

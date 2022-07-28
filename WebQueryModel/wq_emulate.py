@@ -8,7 +8,7 @@ import gc
 import torch
 from itertools import combinations
 
-from wq_model import MyModel5
+from WebQueryModel.wq_model import MyModel5
 
 # Test using BertForMaskedLM
 # import torch.nn as nn
