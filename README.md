@@ -11,6 +11,6 @@ To run, first please:
 The input should be a json file. See *sample.json* and *sample2.json* in the SampleData folder for an example input.
 
 To run the whole pipeline:
-* ```python test.py```
+* ```python sanitize.py```
 
 The output is a json file containing the masking decisions of each module of the pipeline.
