@@ -141,10 +141,10 @@ if __name__ == "__main__":
         # Save final decisions
         decisions = {
             "opt_decision": [posList[i] for i,d in enumerate(res) if d==1],        # 1 for KEEP
-            "ner_decision": posList,                                               # All the entities detected by NER
-            "b1": list(set(posList[t[0]] for pair in blacklist1 for t in pair)),   # blacklist1 LM
-            "b2": list(set(posList[t[0]] for pair in blacklist2 for t in pair)),   # blacklist2 Web Query Based Models
-            "b3": list(set(posList[t[0]] for pair in blacklist3 for t in pair))    # blacklist3 2.3 mask_classifier
+            "ER_decision": posList,                                               # All the entities detected by NER
+            "blacklist1": list(set(posList[t[0]] for pair in blacklist1 for t in pair)),   # blacklist1 LM
+            "blacklist2": list(set(posList[t[0]] for pair in blacklist2 for t in pair)),   # blacklist2 Web Query Based Models
+            "blacklist3": list(set(posList[t[0]] for pair in blacklist3 for t in pair))    # blacklist3 2.3 mask_classifier
         }
         # sort the list
         for k,v in decisions.items():
