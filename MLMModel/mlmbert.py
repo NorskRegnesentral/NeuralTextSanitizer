@@ -1,16 +1,11 @@
 from __future__ import annotations
-import math
 from collections import deque
 import numpy as np
 import intervaltree
 import torch
 import torch.nn.functional as F
 from transformers import BertTokenizerFast, BertForMaskedLM
-# import json, re, sys, abc, argparse, math
-# from typing import Any, Dict, List, Tuple
-# from dataclasses import dataclass
-# import tqdm
-# import pandas
+import math
 
 class mlmbert:
     def __init__(self, device, tokenizer, model, max_segment_size = 100, thres = -20, N = 3):

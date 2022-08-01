@@ -1,25 +1,5 @@
-# from typing_extensions import TypedDict
-# import torch.nn.functional as F
-# from typing import List,Any
-# from transformers import BertModel, BertTokenizerFast, RobertaModel, RobertaTokenizer, RobertaTokenizerFast, RobertaForTokenClassification, LongformerTokenizer, LongformerTokenizerFast
-# from tokenizers import Encoding
-# import itertools
-# from torch import nn
-# from dataclasses import dataclass
-# from torch.utils.data import Dataset
-# from transformers import PreTrainedTokenizerFast
-# import json
-# import torch
-
-# from transformers import AdamW
-# from transformers import get_linear_schedule_with_warmup
-# from sklearn.metrics import classification_report
-# import tqdm
-# import numpy as np
-# import matplotlib.pyplot as plt
-# import collections
-# import random
-# import argparse
+from torch.utils.data import Dataset
+import torch
 from ERModel.data_handling import *
 from torch.utils.data.dataloader import DataLoader
 import string

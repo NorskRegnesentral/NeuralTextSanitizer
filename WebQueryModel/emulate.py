@@ -1,9 +1,6 @@
 import gc         # garbage collector
 import torch
-import torch.nn as nn
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from itertools import combinations
 
 # In case of error, first install pytorch and tensorflow then install transformers

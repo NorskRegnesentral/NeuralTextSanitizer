@@ -2,7 +2,6 @@ import intervaltree
 import numpy as np
 import math
 from transformers import BertTokenizerFast, BertModel
-from itertools import combinations
 
 import gc
 import torch

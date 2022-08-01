@@ -1,17 +1,3 @@
-# from typing_extensions import TypedDict
-# import torch.nn.functional as F
-# from transformers import BertModel, BertTokenizerFast,  BatchEncoding
-# from tokenizers import Encoding
-# from torch import nn
-# import json
-# from torch.utils.data.dataloader import DataLoader
-# from transformers import BertForTokenClassification, AdamW
-# from transformers import get_linear_schedule_with_warmup
-# from sklearn.metrics import classification_report
-# import tqdm
-# import numpy as np
-# import matplotlib.pyplot as plt
-
 from typing import List,Any
 import itertools
 from dataclasses import dataclass

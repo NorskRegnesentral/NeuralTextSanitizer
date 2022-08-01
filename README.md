@@ -8,7 +8,13 @@ To run, first please:
 * Install intervaltree: `pip install intervaltree`
 * Install dill: `pip3 install dill`
 
-The input should be a json file. See *sample.json* and *sample2.json* in the SampleData folder for an example input.
+The input is a file containing json objects to be sanitized. See *sample2.json* and *sample.json* in the SampleData folder for an example input.
+
+| Field  | Description | |
+| ------------- | ------------- | ------------- |
+| text  | The text to be sanitized  | required |
+| target  | The individual to be protected in the text | required |
+| annotations| Manual annotated start and end offsets, and semantic label of PII in the text | optional |
 
 To run the whole pipeline:
 * ```python sanitize.py```

@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from torch.nn import Linear, Dropout, LSTM, Tanh, CrossEntropyLoss, Conv1d
-import torch.nn.functional as F
 
 class MyModel5(nn.Module):
     def __init__(self, device, drop=False, pooling="lstm"):
