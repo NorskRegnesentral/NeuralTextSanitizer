@@ -1,12 +1,9 @@
 # NeuralTextSanitizer
 Text sanitization with explicit measures of privacy risk.
 
-To run, first please:
+To run, for ```python>=3.7```:
 * Download the three models from [this link](https://drive.google.com/drive/folders/1p9znczAIruZKvUxY0hLRy5YXyj0SfOYk?usp=sharing) and place them in the SampleData folder
-* Install google-ortools with ```python -m pip install --upgrade --user ortools```
-* Install transformers from Hugging Face: `pip install transformers`
-* Install intervaltree: `pip install intervaltree`
-* Install dill: `pip3 install dill`
+* ```python -m pip install -r requirements.txt```
 
 The input is a file containing json objects to be sanitized. See *sample2.json* and *sample.json* in the SampleData folder for an example input.
 
