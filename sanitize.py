@@ -17,6 +17,7 @@ from ERModel.bert_model import NERModel
 from transformers import RobertaTokenizerFast
 from ERModel.detect import detect_pii
 from MaskClassifier.mask_classifier import MaskClassifier
+import argparse
 
 
 if __name__ == "__main__":
@@ -34,6 +35,14 @@ if __name__ == "__main__":
 
     # Test Data for the whole pipeline
 
+    parser = argparse.ArgumentParser(description='Sanitization of a given input text and target.')
+
+    parser.add_argument('input_file', type=str,
+                        help='the path to the JSON file containing the text and target')
+    args = parser.parse_args()
+
+    input_file = args.input_file
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     roberta_tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base")
@@ -47,7 +56,7 @@ if __name__ == "__main__":
     myModel = MyModel5(device, drop=True, concatenation=1).to(device)
     myModel.load_state_dict(torch.load('SampleData/(u,v)_annotator_based.pt', map_location=device))
 
-    with open("SampleData/sample2.json","r") as f:
+    with open(input_file, "r") as f:
         tmp = json.load(f)
         final_decisions = []
 
@@ -60,6 +69,7 @@ if __name__ == "__main__":
         try:
             # If posList have manual annotations
             posList = document["annotations"]
+            print("Manually detected PII.")
             posList = [tuple(p) for p in posList]
 
             tagList = [i[1] for i in posList]
@@ -68,6 +78,7 @@ if __name__ == "__main__":
             spans = {pos: tag for pos, tag in zip(posList, tagList)}
 
         except KeyError:
+            print("Automatically detected PII.")
             # Privacy enhanced ER to detect all PII
             posList = detect_pii(document, ner_model, roberta_tokenizer) # List of {target: [Spans detected with labels]}
             posList = list(posList.values())[0] # get only the values
@@ -141,7 +152,7 @@ if __name__ == "__main__":
         # Save final decisions
         decisions = {
             "opt_decision": [posList[i] for i,d in enumerate(res) if d==1],        # 1 for KEEP
-            "ER_decision": posList,                                               # All the entities detected by NER
+            "PII": posList,                                               # All the entities detected by NER
             "blacklist1": list(set(posList[t[0]] for pair in blacklist1 for t in pair)),   # blacklist1 LM
             "blacklist2": list(set(posList[t[0]] for pair in blacklist2 for t in pair)),   # blacklist2 Web Query Based Models
             "blacklist3": list(set(posList[t[0]] for pair in blacklist3 for t in pair))    # blacklist3 2.3 mask_classifier
