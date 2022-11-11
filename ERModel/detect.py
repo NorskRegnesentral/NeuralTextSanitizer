@@ -26,7 +26,13 @@ def detect_pii(data, model, tokenizer):
             y_pred = y_pred.permute(0,2,1)              # [N,512,17] -> [N,17,512]
             pred = y_pred.argmax(dim=1).cpu().numpy()   # [N,17,512] -> [N,512]
             offsets.extend(X['offsets'])
-            predictions.extend([list(p) for p in pred]) # [N,512], a category for each token
+
+            preds = [list(p) for p in pred]
+            for index, value in enumerate(preds[0]):
+                if value in [2,4,6,8,10,12,14,16] and preds[0][index-1] == 0:
+                    preds[0][index] = 0
+                    
+            predictions.extend(preds) # [N,512], a category for each token
 
 
     out = []
@@ -62,12 +68,7 @@ def detect_pii(data, model, tokenizer):
     except StopIteration:
         pass
     
-    ##Light filtering due to roberta-tokenizer issue which results in partial predictions
     text = data['text']
-
-    alpha  = list(string.ascii_lowercase)
-    Alpha = list(string.ascii_uppercase)
-    beta = alpha+Alpha
     punct = list(string.punctuation)
 
     for i in out.copy():
@@ -80,12 +81,14 @@ def detect_pii(data, model, tokenizer):
             break
 
         if offsets[0]!= 0:
-            if text[offsets[0]-1] in beta: # if the left side of the entity also has english character -> remove such entity
+            if text[offsets[0]-1].isalpha(): # if the left side of the entity also has english character -> remove such entity
+                print("Left")
                 out.remove(i)
                 break
         if offsets[1] != len(text):
             if text[offsets[1]-1] not in punct:
-                if text[offsets[1]] in beta: # if the right side of the entity also has english character -> remove such entity
+                if text[offsets[1]].isalpha(): # if the right side of the entity also has english character -> remove such entity
+                    print("Right")
                     out.remove(i)
                     break
 

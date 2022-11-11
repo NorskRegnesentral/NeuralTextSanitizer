@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
         # Step 2: get final decision for each entity
         start = time.time()
-        print("Getting final decisions\n")
+        print("Linear optimization for final set of masking decisions\n")
         n = len(semantic_loss)
         m = 2
         scores = np.array([[sem_loss,0] for sem_loss in semantic_loss]) # should input np.array
@@ -163,7 +163,7 @@ if __name__ == "__main__":
             decisions[k].sort()
         final_decisions.append({target:decisions})
 
-    out_file = open("final_decision.json", "w")
+    out_file = open("final_decisions.json", "w")
     json.dump(final_decisions, out_file, ensure_ascii=False)
 
         # Some tests
