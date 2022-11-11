@@ -82,13 +82,11 @@ def detect_pii(data, model, tokenizer):
 
         if offsets[0]!= 0:
             if text[offsets[0]-1].isalpha(): # if the left side of the entity also has english character -> remove such entity
-                print("Left")
                 out.remove(i)
                 break
         if offsets[1] != len(text):
             if text[offsets[1]-1] not in punct:
                 if text[offsets[1]].isalpha(): # if the right side of the entity also has english character -> remove such entity
-                    print("Right")
                     out.remove(i)
                     break
 
